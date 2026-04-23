@@ -34,10 +34,27 @@
         cursor: pointer;
       }
 
+      #uploadHint {
+        font-size: 12px;
+        color: #666;
+        margin-top: 6px;
+      }
+
       #message {
         margin-top: 15px;
-        color: green;
         text-align: center;
+      }
+
+      .status-success {
+        color: green;
+      }
+
+      .status-error {
+        color: #c00;
+      }
+
+      .status-info {
+        color: #1a73e8;
       }
     </style>
   </head>
@@ -61,29 +78,108 @@
         <option value="Female">Female</option>
       </select>
 
-      <button type="submit">Submit</button>
+      <label for="pdfFile">Upload PDF (optional)</label>
+      <input type="file" id="pdfFile" name="pdfFile" accept="application/pdf,.pdf">
+      <div id="uploadHint">PDF only, max 5 MB.</div>
+
+      <button type="submit" id="submitButton">Submit</button>
     </form>
 
     <div id="message"></div>
 
     <script>
-      document.getElementById("dataForm").addEventListener("submit", function(e) {
-        e.preventDefault();
+      const MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024;
+      const PDF_MIME_TYPE = 'application/pdf';
 
+      const form = document.getElementById('dataForm');
+      const submitButton = document.getElementById('submitButton');
+      const messageEl = document.getElementById('message');
+      const pdfInput = document.getElementById('pdfFile');
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        setMessage('Uploading and submitting...', 'status-info');
+        submitButton.disabled = true;
+
+        buildFormPayload()
+          .then(function(formData) {
+            google.script.run
+              .withSuccessHandler(function(response) {
+                const statusMessage = response && response.pdfUploaded
+                  ? response.message + ' PDF uploaded.'
+                  : (response && response.message ? response.message : 'Data saved successfully!');
+
+                setMessage(statusMessage, 'status-success');
+                form.reset();
+                submitButton.disabled = false;
+              })
+              .withFailureHandler(function(error) {
+                setMessage(error && error.message ? error.message : 'Submission failed.', 'status-error');
+                submitButton.disabled = false;
+              })
+              .saveData(formData);
+          })
+          .catch(function(error) {
+            setMessage(error.message, 'status-error');
+            submitButton.disabled = false;
+          });
+      });
+
+      function buildFormPayload() {
         const formData = {
-          lastName: document.getElementById("lastName").value,
-          firstName: document.getElementById("firstName").value,
-          middleName: document.getElementById("middleName").value,
-          sex: document.getElementById("sex").value
+          lastName: document.getElementById('lastName').value,
+          firstName: document.getElementById('firstName').value,
+          middleName: document.getElementById('middleName').value,
+          sex: document.getElementById('sex').value
         };
 
-        google.script.run
-          .withSuccessHandler(function(response) {
-            document.getElementById("message").innerText = response;
-            document.getElementById("dataForm").reset();
-          })
-          .saveData(formData);
-      });
+        const file = pdfInput.files && pdfInput.files[0] ? pdfInput.files[0] : null;
+        if (!file) {
+          return Promise.resolve(formData);
+        }
+
+        validatePdf(file);
+
+        return fileToBase64(file).then(function(base64Data) {
+          formData.pdfFile = {
+            fileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+            base64Data: base64Data
+          };
+          return formData;
+        });
+      }
+
+      function validatePdf(file) {
+        if (file.type !== PDF_MIME_TYPE && !file.name.toLowerCase().endsWith('.pdf')) {
+          throw new Error('Only PDF files are allowed.');
+        }
+
+        if (file.size > MAX_PDF_SIZE_BYTES) {
+          throw new Error('PDF file is too large. Maximum size is 5 MB.');
+        }
+      }
+
+      function fileToBase64(file) {
+        return new Promise(function(resolve, reject) {
+          const reader = new FileReader();
+          reader.onload = function() {
+            const result = reader.result || '';
+            const commaIndex = result.indexOf(',');
+            resolve(commaIndex > -1 ? result.substring(commaIndex + 1) : result);
+          };
+          reader.onerror = function() {
+            reject(new Error('Unable to read selected PDF file.'));
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function setMessage(text, cssClass) {
+        messageEl.className = cssClass;
+        messageEl.innerText = text;
+      }
     </script>
   </body>
 </html>

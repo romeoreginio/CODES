@@ -1,3 +1,9 @@
+const PDF_CONFIG = Object.freeze({
+  maxSizeBytes: 5 * 1024 * 1024,
+  allowedMimeType: 'application/pdf',
+  driveFolderPropertyKey: 'PDF_UPLOAD_FOLDER_ID'
+});
+
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Data Entry Form');
@@ -5,13 +11,96 @@ function doGet() {
 
 function saveData(formData) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const now = new Date();
+  const recordId = Utilities.getUuid();
+  const pdfMeta = formData && formData.pdfFile
+    ? uploadPdfFile(formData.pdfFile, recordId)
+    : createEmptyPdfMetadata();
 
   sheet.appendRow([
-    formData.lastName,   // Column A
-    formData.firstName,  // Column B
-    formData.middleName, // Column C
-    formData.sex         // Column D
+    formData.lastName,      // Column A
+    formData.firstName,     // Column B
+    formData.middleName,    // Column C
+    formData.sex,           // Column D
+    recordId,               // Column E
+    pdfMeta.fileName,       // Column F
+    pdfMeta.fileUrl,        // Column G
+    pdfMeta.fileId,         // Column H
+    pdfMeta.uploadedAt || ''// Column I
   ]);
 
-  return "Data saved successfully!";
+  const submittedAt = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  return {
+    message: 'Data saved successfully!',
+    recordId: recordId,
+    submittedAt: submittedAt,
+    pdfUploaded: Boolean(pdfMeta.fileId),
+    pdf: pdfMeta
+  };
+}
+
+function uploadPdfFile(pdfFile, recordId) {
+  if (!pdfFile || !pdfFile.base64Data || !pdfFile.fileName || !pdfFile.mimeType) {
+    throw new Error('Invalid PDF payload.');
+  }
+
+  if (pdfFile.mimeType !== PDF_CONFIG.allowedMimeType) {
+    throw new Error('Only PDF files are allowed.');
+  }
+
+  const byteSize = estimateBase64Bytes(pdfFile.base64Data);
+  if (byteSize > PDF_CONFIG.maxSizeBytes) {
+    throw new Error('PDF file is too large. Maximum size is 5 MB.');
+  }
+
+  const folderId = PropertiesService.getScriptProperties().getProperty(PDF_CONFIG.driveFolderPropertyKey);
+  if (!folderId) {
+    throw new Error('Missing Drive folder configuration. Set script property PDF_UPLOAD_FOLDER_ID.');
+  }
+
+  let folder;
+  try {
+    folder = DriveApp.getFolderById(folderId);
+  } catch (error) {
+    throw new Error('Unable to access configured Drive folder. Verify PDF_UPLOAD_FOLDER_ID and permissions.');
+  }
+
+  const sanitizedName = pdfFile.fileName.toLowerCase().endsWith('.pdf')
+    ? pdfFile.fileName
+    : pdfFile.fileName + '.pdf';
+
+  const blob = Utilities.newBlob(
+    Utilities.base64Decode(pdfFile.base64Data),
+    PDF_CONFIG.allowedMimeType,
+    recordId + '_' + sanitizedName
+  );
+
+  const file = folder.createFile(blob);
+  const uploadedAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+
+  return {
+    fileName: file.getName(),
+    fileUrl: file.getUrl(),
+    fileId: file.getId(),
+    uploadedAt: uploadedAt
+  };
+}
+
+function estimateBase64Bytes(base64Data) {
+  if (!base64Data) {
+    return 0;
+  }
+
+  const clean = base64Data.replace(/\s/g, '');
+  const padding = (clean.match(/=*$/) || [''])[0].length;
+  return (clean.length * 3) / 4 - padding;
+}
+
+function createEmptyPdfMetadata() {
+  return {
+    fileName: '',
+    fileUrl: '',
+    fileId: '',
+    uploadedAt: ''
+  };
 }
