@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 400px;
+        margin: 40px auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      label {
+        display: block;
+        margin-top: 12px;
+        font-weight: bold;
+      }
+
+      input, select, button {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        box-sizing: border-box;
+      }
+
+      button {
+        margin-top: 20px;
+        cursor: pointer;
+      }
+
+      #message {
+        margin-top: 15px;
+        color: green;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Information Form</h2>
+
+    <form id="dataForm">
+      <label for="lastName">Last Name</label>
+      <input type="text" id="lastName" name="lastName" required>
+
+      <label for="firstName">First Name</label>
+      <input type="text" id="firstName" name="firstName" required>
+
+      <label for="middleName">Middle Name</label>
+      <input type="text" id="middleName" name="middleName">
+
+      <label for="sex">Sex</label>
+      <select id="sex" name="sex" required>
+        <option value="">Select Sex</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+
+      <button type="submit">Submit</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script>
+      document.getElementById("dataForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const formData = {
+          lastName: document.getElementById("lastName").value,
+          firstName: document.getElementById("firstName").value,
+          middleName: document.getElementById("middleName").value,
+          sex: document.getElementById("sex").value
+        };
+
+        google.script.run
+          .withSuccessHandler(function(response) {
+            document.getElementById("message").innerText = response;
+            document.getElementById("dataForm").reset();
+          })
+          .saveData(formData);
+      });
+    </script>
+  </body>
+</html>

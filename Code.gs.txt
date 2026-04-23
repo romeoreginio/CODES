@@ -1,0 +1,17 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Data Entry Form');
+}
+
+function saveData(formData) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+  sheet.appendRow([
+    formData.lastName,   // Column A
+    formData.firstName,  // Column B
+    formData.middleName, // Column C
+    formData.sex         // Column D
+  ]);
+
+  return "Data saved successfully!";
+}
