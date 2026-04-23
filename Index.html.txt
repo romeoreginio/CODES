@@ -2,90 +2,215 @@
 <html>
   <head>
     <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+      :root {
+        --sky-top: #7fd4ff;
+        --sky-bottom: #dff7ff;
+        --sun: #ffd55a;
+        --sun-glow: rgba(255, 213, 90, 0.45);
+        --card-bg: rgba(255, 255, 255, 0.92);
+        --card-border: #8bcff6;
+        --text-primary: #1f2f4d;
+        --text-secondary: #3f5f8a;
+        --accent-primary: #ff8b5f;
+        --accent-primary-hover: #ff7442;
+        --accent-secondary: #1f9fd8;
+        --input-border: #9fcdf1;
+        --success: #1b7f3f;
+        --error: #bf2f2f;
+        --info: #1f78cf;
+        --shadow-card: 0 12px 28px rgba(32, 101, 153, 0.2);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: Arial, sans-serif;
-        max-width: 400px;
-        margin: 40px auto;
-        padding: 20px;
-        border: 1px solid #ccc;
-        border-radius: 10px;
+        margin: 0;
+        min-height: 100vh;
+        padding: 22px;
+        font-family: "Trebuchet MS", "Arial", sans-serif;
+        color: var(--text-primary);
+        background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 55%, #ffe9b8 100%);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      body::before {
+        width: 180px;
+        height: 180px;
+        top: 26px;
+        right: clamp(20px, 10vw, 120px);
+        border-radius: 50%;
+        background: radial-gradient(circle at center, var(--sun) 0%, #ffc83c 60%, rgba(255, 200, 60, 0.15) 100%);
+        box-shadow: 0 0 0 18px var(--sun-glow), 0 0 60px 20px var(--sun-glow);
+      }
+
+      body::after {
+        inset: 0;
+        background:
+          radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.65) 0 35px, transparent 38px),
+          radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.6) 0 28px, transparent 30px),
+          radial-gradient(circle at 76% 27%, rgba(255, 255, 255, 0.55) 0 28px, transparent 30px),
+          radial-gradient(circle at 81% 29%, rgba(255, 255, 255, 0.55) 0 20px, transparent 22px),
+          linear-gradient(180deg, transparent 70%, rgba(91, 199, 222, 0.22) 79%, rgba(44, 168, 198, 0.35) 86%, rgba(255, 233, 184, 0) 100%);
+      }
+
+      .app-shell {
+        max-width: 460px;
+        margin: 24px auto;
+        background: var(--card-bg);
+        border: 2px solid var(--card-border);
+        border-radius: 24px;
+        padding: 24px 22px;
+        box-shadow: var(--shadow-card);
+        backdrop-filter: blur(2px);
       }
 
       h2 {
         text-align: center;
+        margin: 0 0 16px;
+        color: var(--accent-secondary);
+        font-size: 1.6rem;
+        letter-spacing: 0.2px;
       }
 
       label {
         display: block;
         margin-top: 12px;
-        font-weight: bold;
+        font-weight: 700;
+        color: var(--text-secondary);
       }
 
-      input, select, button {
+      input,
+      select,
+      button {
         width: 100%;
-        padding: 10px;
-        margin-top: 5px;
-        box-sizing: border-box;
+        padding: 11px 12px;
+        margin-top: 6px;
+        border-radius: 12px;
+        font-size: 0.98rem;
+      }
+
+      input,
+      select {
+        border: 1px solid var(--input-border);
+        background: #ffffff;
+        color: var(--text-primary);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--accent-secondary);
+        box-shadow: 0 0 0 3px rgba(31, 159, 216, 0.22);
       }
 
       button {
         margin-top: 20px;
+        border: none;
+        background: linear-gradient(180deg, #ffa77d 0%, var(--accent-primary) 100%);
+        color: #fff;
+        font-weight: 700;
         cursor: pointer;
+        box-shadow: 0 7px 14px rgba(255, 116, 66, 0.34);
+        transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+      }
+
+      button:hover:not(:disabled) {
+        background: linear-gradient(180deg, #ff976c 0%, var(--accent-primary-hover) 100%);
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.75;
+        box-shadow: none;
       }
 
       #uploadHint {
         font-size: 12px;
-        color: #666;
+        color: #5f7f9c;
         margin-top: 6px;
       }
 
       #message {
         margin-top: 15px;
         text-align: center;
+        min-height: 20px;
+        font-weight: 700;
       }
 
       .status-success {
-        color: green;
+        color: var(--success);
       }
 
       .status-error {
-        color: #c00;
+        color: var(--error);
       }
 
       .status-info {
-        color: #1a73e8;
+        color: var(--info);
+      }
+
+      @media (max-width: 540px) {
+        body {
+          padding: 14px;
+        }
+
+        .app-shell {
+          margin: 12px auto;
+          padding: 18px 16px;
+          border-radius: 18px;
+        }
+
+        h2 {
+          font-size: 1.4rem;
+        }
       }
     </style>
   </head>
   <body>
-    <h2>Information Form</h2>
+    <main class="app-shell">
+      <h2>Information Form</h2>
 
-    <form id="dataForm">
-      <label for="lastName">Last Name</label>
-      <input type="text" id="lastName" name="lastName" required>
+      <form id="dataForm">
+        <label for="lastName">Last Name</label>
+        <input type="text" id="lastName" name="lastName" required>
 
-      <label for="firstName">First Name</label>
-      <input type="text" id="firstName" name="firstName" required>
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" name="firstName" required>
 
-      <label for="middleName">Middle Name</label>
-      <input type="text" id="middleName" name="middleName">
+        <label for="middleName">Middle Name</label>
+        <input type="text" id="middleName" name="middleName">
 
-      <label for="sex">Sex</label>
-      <select id="sex" name="sex" required>
-        <option value="">Select Sex</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-      </select>
+        <label for="sex">Sex</label>
+        <select id="sex" name="sex" required>
+          <option value="">Select Sex</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
 
-      <label for="pdfFile">Upload PDF (optional)</label>
-      <input type="file" id="pdfFile" name="pdfFile" accept="application/pdf,.pdf">
-      <div id="uploadHint">PDF only, max 5 MB.</div>
+        <label for="pdfFile">Upload PDF (optional)</label>
+        <input type="file" id="pdfFile" name="pdfFile" accept="application/pdf,.pdf">
+        <div id="uploadHint">PDF only, max 5 MB.</div>
 
-      <button type="submit" id="submitButton">Submit</button>
-    </form>
+        <button type="submit" id="submitButton">Submit</button>
+      </form>
 
-    <div id="message"></div>
+      <div id="message"></div>
+    </main>
 
     <script>
       const MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024;
